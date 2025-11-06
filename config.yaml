@@ -1,11 +1,26 @@
 # config.yaml
-source_path: "D:\\Lakebridge_POC\\Source_Scripts"
-target_path: "./Output_Scripts"
-dialect: "Synapse"
+source_path: "D:/Gauri/Downloads/all_dtsx_files/output/sql_files"
+target_path: "D:/Gauri/Downloads/all_dtsx_files/output/sql_files/transpiler_output"
+dialect: "synapse"
 profile: "lakebridge"
 debug: false
-run_validation: true
-# new flags
-run_analyzer: true
+run_validation: false
+
+# New flags
+run_analyzer: false
 run_transpiler: true
+
+# New date filter settings
+# date_filter:
+#   skip_modified_yesterday: true
+
+ssis_scripts:
+  - "D:/Gauri/desktop/lakebridge_final_git/ssis/01_unzip_ispac_dtsx.py"
+  - "D:/Gauri/desktop/lakebridge_final_git/ssis/02_lakebridge_analyze_transpile_ssis.py"
+  - "D:/Gauri/desktop/lakebridge_final_git/ssis/03_extract_sql_from_excel.py"
+
+
+run_final_transpiler: true
+final_transpiler_script_path: "D:/Gauri/desktop/lakebridge_final_git/ssis/04_transpile_ssis_output.py"
+
 
