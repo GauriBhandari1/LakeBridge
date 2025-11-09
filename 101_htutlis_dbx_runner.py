@@ -128,11 +128,11 @@ def process_sql_files(converted_folder: Path, notebooks_folder: Path, metadata_f
 # -----------------------------------------------
 def create_initial_structure(root_dir: Path = Path("lakebridge")):
     supported_dialects = [
-        "abinitio","adf","alteryx","athena","bigquery","cloudera_impala",
-        "datastage","greenplum","hive","ibm_db2","ms_sql_server","netezza",
-        "oozie","oracle","oracle_data_integrator","pentahodi","pig","presto",
-        "pyspark","redshift","sap_hana_calcviews","snowflake","sp_ss",
-        "sqoop","ssis","ssrs","synapse","talend","teradata","vertica"
+        "abinitio", "adf", "alteryx", "athena", "bigquery", "cloudera_impala",
+        "datastage", "greenplum", "hive", "ibm_db2", "ms_sql_server", "netezza",
+        "oozie", "oracle", "oracle_data_integrator", "pentahodi", "pig", "presto",
+        "pyspark", "redshift", "sap_hana_calcviews", "snowflake", "sp_ss",
+        "sqoop", "ssis", "ssrs", "synapse", "talend", "teradata", "vertica"
     ]
 
     input_dir = root_dir / "input"
@@ -179,19 +179,20 @@ def main():
         print("Setup complete. Exiting now so you can place your SQL scripts.")
         sys.exit(0)
 
-	dialect = config["dialect"]
-	source_root = Path(config["source_path"])
-	target_root = Path(config["target_path"])
+    dialect = config["dialect"]
+    source_root = Path(config["source_path"])
+    target_root = Path(config["target_path"])
 
-	# Normalize dialect name (lowercase and underscore-safe)
-	dialect_folder = dialect.strip().lower().replace(" ", "_")
+    # Normalize dialect name (lowercase and underscore-safe)
+    dialect_folder = dialect.strip().lower().replace(" ", "_")
 
-	# Dynamically build full paths
-	source_path = source_root / dialect_folder
-	target_path = target_root / dialect_folder
+    # Dynamically build full paths
+    source_path = source_root / dialect_folder
+    target_path = target_root / dialect_folder
 
-	print(f"\n🔍 Using source folder: {source_path}")
-	print(f"📂 Using target folder: {target_path}")
+    print(f"\n🔍 Using source folder: {source_path}")
+    print(f"📂 Using target folder: {target_path}")
+
     profile = config.get("profile")
     debug = config.get("debug", False)
     run_validation = config.get("run_validation", True)
