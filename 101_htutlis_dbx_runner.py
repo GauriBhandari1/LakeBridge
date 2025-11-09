@@ -179,9 +179,19 @@ def main():
         print("Setup complete. Exiting now so you can place your SQL scripts.")
         sys.exit(0)
 
-    source_path = Path(config["source_path"])
-    target_path = Path(config["target_path"])
-    dialect = config["dialect"]
+	dialect = config["dialect"]
+	source_root = Path(config["source_path"])
+	target_root = Path(config["target_path"])
+
+	# Normalize dialect name (lowercase and underscore-safe)
+	dialect_folder = dialect.strip().lower().replace(" ", "_")
+
+	# Dynamically build full paths
+	source_path = source_root / dialect_folder
+	target_path = target_root / dialect_folder
+
+	print(f"\n🔍 Using source folder: {source_path}")
+	print(f"📂 Using target folder: {target_path}")
     profile = config.get("profile")
     debug = config.get("debug", False)
     run_validation = config.get("run_validation", True)
