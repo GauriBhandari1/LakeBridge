@@ -4,6 +4,7 @@ import subprocess
 import sys
 import logging
 import yaml
+import os  # ✅ Added
 from pathlib import Path
 from datetime import datetime
 import sqlparse
@@ -27,6 +28,7 @@ def setup_logging(metadata_folder: Path):
     logging.info(f"Logging initialized. Log file: {log_file}")
     return log_file
 
+
 # -------------------------
 # Utility functions
 # -------------------------
@@ -34,8 +36,10 @@ def check_cli():
     if shutil.which("databricks") is None:
         sys.exit("ERROR: 'databricks' CLI not found in PATH. Install/configure it and try again.")
 
+
 def ensure_dirs(folder: Path):
     folder.mkdir(parents=True, exist_ok=True)
+
 
 def run_cmd(cmd_str: str, title: str, log_file=None, ignore_failure=False):
     print(f"\n=== {title} ===")
@@ -60,11 +64,13 @@ def run_cmd(cmd_str: str, title: str, log_file=None, ignore_failure=False):
             sys.exit(msg)
         return False
 
+
 def validate_input_folder(source_path: Path):
     if not source_path.exists():
         sys.exit(f"ERROR: source path not found: {source_path}")
     if not any(source_path.glob("*.sql")):
         print(f"WARNING: No .sql files found in {source_path}")
+
 
 # -------------------------
 # SQL Post-processing + notebooks
@@ -73,7 +79,7 @@ def process_sql_files(converted_folder: Path, notebooks_folder: Path, metadata_f
     final_folder = converted_folder.parent / "Final_Formatted"
     ensure_dirs(final_folder)
     ensure_dirs(notebooks_folder)
-    
+
     summary = []
 
     print("\nPost-processing SQL and generating notebooks started...")
@@ -82,16 +88,13 @@ def process_sql_files(converted_folder: Path, notebooks_folder: Path, metadata_f
         try:
             with open(sql_file, "r", encoding="utf-8", errors="replace") as f:
                 sql_content = f.read()
-            
-            # 🎨 Format SQL
+
             sql_content = sqlparse.format(sql_content, reindent=True, keyword_case="upper")
 
-            # Save to Final_Formatted
             final_file = final_folder / sql_file.name
             with open(final_file, "w", encoding="utf-8") as f:
                 f.write(sql_content)
 
-            # Create Databricks notebook (.py)
             notebook_file = notebooks_folder / (sql_file.stem + ".py")
             with open(notebook_file, "w", encoding="utf-8") as f:
                 f.write("# Databricks notebook source\n")
@@ -101,31 +104,29 @@ def process_sql_files(converted_folder: Path, notebooks_folder: Path, metadata_f
                 f.write('\n"""\n')
                 f.write("display(spark.sql(sql_query))\n")
 
-            # Upload notebook to Databricks (ignore failures here)
             upload_cmd = (
                 f'databricks workspace import '
                 f'--file "{notebook_file}" '
                 f'"/Shared/{notebook_file.name}" '
                 f'--language PYTHON --overwrite'
             )
-            run_cmd(upload_cmd, f"Upload Notebook {notebook_file.name}", log_file=metadata_folder / f"lakebridge_run_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt", ignore_failure=True)
+            run_cmd(upload_cmd, f"Upload Notebook {notebook_file.name}",
+                    log_file=metadata_folder / f"lakebridge_run_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                    ignore_failure=True)
 
         except Exception as e:
             status = f"Failed: {e}"
             logging.error(f"Error processing {sql_file.name}: {e}")
-        
+
         summary.append((sql_file.name, status))
 
     return summary
+
+
 # -----------------------------------------------
 #  LakeBridge Folder Structure Initialization
 # -----------------------------------------------
-
 def create_initial_structure(root_dir: Path = Path("lakebridge")):
-    """
-    Creates the initial LakeBridge folder structure:
-    lakebridge/input/<dialect>/, lakebridge/output/<dialect>/, lakebridge/logs/
-    """
     supported_dialects = [
         "abinitio","adf","alteryx","athena","bigquery","cloudera_impala",
         "datastage","greenplum","hive","ibm_db2","ms_sql_server","netezza",
@@ -143,26 +144,25 @@ def create_initial_structure(root_dir: Path = Path("lakebridge")):
         (output_dir / dialect).mkdir(parents=True, exist_ok=True)
     logs_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"\n LakeBridge base structure created under {root_dir.resolve()}")
+    print(f"\n✅ LakeBridge base structure created under {root_dir.resolve()}")
     print("Put your SQL scripts inside lakebridge/input/<dialect>/")
     print("Converted scripts will appear under lakebridge/output/<dialect>/")
     print("Then re-run: python runner.py\n")
 
 
 def is_first_time_setup():
-    """Detect if LakeBridge root folder exists or not."""
     root_dir = Path("lakebridge")
     return not root_dir.exists() or not any(root_dir.iterdir())
+
 
 # -------------------------
 # Main function
 # -------------------------
 def main():
     parser = argparse.ArgumentParser(description="Run Lakebridge Analyze and Convert (Transpile) commands.")
-    parser.add_argument("--config", default="config.yaml", help="Path to YAML config file")  # >>> changed default
+    parser.add_argument("--config", default="config.yaml", help="Path to YAML config file")
     args = parser.parse_args()
 
-    # >>> Added: auto-download config.yaml if not found
     config_path = Path(args.config)
     if not config_path.exists():
         print(f"Config file {config_path} not found. Downloading from GitHub...")
@@ -173,14 +173,11 @@ def main():
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 
-    # LakeBridge first-time setup
     if is_first_time_setup():
-        print("\n Detected first-time setup. Creating LakeBridge folder structure...")
+        print("\nDetected first-time setup. Creating LakeBridge folder structure...")
         create_initial_structure()
         print("Setup complete. Exiting now so you can place your SQL scripts.")
         sys.exit(0)
-
-
 
     source_path = Path(config["source_path"])
     target_path = Path(config["target_path"])
@@ -189,13 +186,11 @@ def main():
     debug = config.get("debug", False)
     run_validation = config.get("run_validation", True)
 
-    # <<< ADDED
     run_analyzer = config.get("run_analyzer", True)
     run_transpiler = config.get("run_transpiler", True)
     if not run_analyzer and not run_transpiler:
-        print("\n⚠️ Nothing to run. Both run_analyzer and run_transpiler are set to False in config.")
+        print("\n⚠️ Nothing to run. Both run_analyzer and run_transpiler are False in config.")
         sys.exit(0)
-    # <<< END ADDED
 
     ts_folder = datetime.now().strftime("%Y%m%d")
     metadata_folder = target_path / "metadata" / ts_folder
@@ -218,12 +213,9 @@ def main():
     if debug:
         global_flags += ["--debug"]
 
-    # -------------------------
-    # 1️⃣ Analyzer (single run, track per file)
-    # -------------------------
     analyzer_status_dict = {}
     try:
-        if run_analyzer:  # <<< ADDED
+        if run_analyzer:
             analyze_cmd_parts = [
                 "databricks labs lakebridge analyze",
                 f'--source-directory "{source_path}"',
@@ -238,14 +230,11 @@ def main():
         for sql_file in source_path.glob("*.sql"):
             analyzer_status_dict[sql_file.name] = "Failed"
 
-    # -------------------------
-    # 2️⃣ Transpiler (file by file)
-    # -------------------------
     converted_folder = target_path / "Converted_Code"
     ensure_dirs(converted_folder)
 
     transpile_status_dict = {}
-    if run_transpiler:  # <<< ADDED
+    if run_transpiler:
         print("\nStarting transpile per SQL file...")
         for sql_file in source_path.glob("*.sql"):
             try:
@@ -255,21 +244,16 @@ def main():
                     f'--source-dialect {dialect.lower()}',
                     f'--output-folder "{converted_folder}"',
                 ] + global_flags
-                success = run_cmd(" ".join(transpile_cmd_parts), f"Transpile {sql_file.name}", log_file=log_file, ignore_failure=True)
+                success = run_cmd(" ".join(transpile_cmd_parts),
+                                  f"Transpile {sql_file.name}", log_file=log_file, ignore_failure=True)
                 transpile_status_dict[sql_file.name] = "Success" if success else "Failed"
             except Exception as e:
                 logging.error(f"Transpile failed for {sql_file.name}: {e}")
                 transpile_status_dict[sql_file.name] = "Failed"
 
-    # -------------------------
-    # 3️⃣ Post-process SQL + generate notebooks
-    # -------------------------
     notebooks_folder = target_path / "Databricks_Notebooks"
-    post_process_summary = process_sql_files(converted_folder, notebooks_folder, metadata_folder) if run_transpiler else []  # <<< ADDED
+    post_process_summary = process_sql_files(converted_folder, notebooks_folder, metadata_folder) if run_transpiler else []
 
-    # -------------------------
-    # 4️⃣ Write combined CSV summary
-    # -------------------------
     summary_file = metadata_folder / f"sql_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     with open(summary_file, "w", newline="", encoding="utf-8") as csvfile:
         writer = csv.writer(csvfile)
@@ -279,13 +263,26 @@ def main():
         for file_name in all_files:
             writer.writerow([
                 file_name,
-                analyzer_status_dict.get(file_name, "Skipped" if not run_analyzer else "Failed"),  # <<< ADDED
-                transpile_status_dict.get(file_name, "Skipped" if not run_transpiler else "Failed"),  # <<< ADDED
-                post_process_dict.get(file_name, "Skipped" if not run_transpiler else "Failed"),  # <<< ADDED
+                analyzer_status_dict.get(file_name, "Skipped" if not run_analyzer else "Failed"),
+                transpile_status_dict.get(file_name, "Skipped" if not run_transpiler else "Failed"),
+                post_process_dict.get(file_name, "Skipped" if not run_transpiler else "Failed"),
             ])
     print(f"\nAll tasks completed. Summary CSV saved at {summary_file}")
-
     sys.exit(0)
 
+
+# -------------------------
+# Entry Point with CURL logic
+# -------------------------
 if __name__ == "__main__":
-    main()
+    if "CURL_SETUP" in os.environ:
+        if is_first_time_setup():
+            print("\n🚀 First-time setup detected (CURL mode). Creating LakeBridge folder structure...")
+            create_initial_structure()
+            print("✅ Setup completed. Exiting now.")
+            sys.exit(0)
+        else:
+            print("✅ LakeBridge folder structure already exists. Skipping setup and exiting.")
+            sys.exit(0)
+    else:
+        main()
