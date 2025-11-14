@@ -11,6 +11,9 @@ import sqlparse
 import csv
 import urllib.request  # >>> Added
 
+from bteq_preprocessor import preprocess_bteq_files
+
+
 
 # -------------------------
 # Setup Logging (file only)
@@ -180,6 +183,10 @@ def main():
         sys.exit(0)
 
     dialect = config["dialect"]
+
+    if dialect.strip().lower() == "teradata":
+        preprocess_bteq_files()
+
     source_root = Path(config["source_path"])
     target_root = Path(config["target_path"])
 
