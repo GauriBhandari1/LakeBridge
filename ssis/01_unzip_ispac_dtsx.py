@@ -1,55 +1,53 @@
-import os
-import zipfile
+from pathlib import Path
 import shutil
 import tempfile
+import zipfile
 
-# --- USER INPUT ---
-zip_path = input("Enter the full path of the zip file (.zip): ").strip()
-output_dir = input("Enter the directory to save extracted .dtsx files: ").strip()
+# --- USER ONLY MODIFIES THIS ---
+USER_INPUT = Path(r"C:\Users\ws_htu1651\Downloads\ssis_scripts_check")  # <-- user sets their files here
 
-# Create output directory if it doesn't exist
-os.makedirs(output_dir, exist_ok=True)
+# Fixed LakeBridge input folder
+LAKEBRIDGE_INPUT = Path(__file__).parent.parent / "lakebridge" / "input" / "ssis"
+LAKEBRIDGE_INPUT.mkdir(parents=True, exist_ok=True)
 
-# Step 1: Create a temp directory for unzipping the outer .zip
-with tempfile.TemporaryDirectory() as temp_dir:
-    print(f"🔓 Unzipping outer zip: {zip_path}")
-    with zipfile.ZipFile(zip_path, 'r') as outer_zip:
-        outer_zip.extractall(temp_dir)
+def extract_dtsx_from_ispac(ispac_file, output_dir):
+    try:
+        with zipfile.ZipFile(ispac_file, 'r') as z:
+            for name in z.namelist():
+                if name.lower().endswith(".dtsx"):
+                    base_name = Path(ispac_file).stem
+                    dest_file = output_dir / f"{base_name}_{Path(name).name}"
+                    counter = 1
+                    while dest_file.exists():
+                        dest_file = output_dir / f"{base_name}_{counter}_{Path(name).name}"
+                        counter += 1
+                    with z.open(name) as src, open(dest_file, "wb") as dst:
+                        shutil.copyfileobj(src, dst)
+                    print(f"➤ Extracted {dest_file.name}")
+    except zipfile.BadZipFile:
+        print(f"❌ Invalid .ispac file: {ispac_file}")
 
-    print(f"✅ Extracted outer zip to temp folder: {temp_dir}")
-    print("🔍 Scanning for .ispac files...")
+def process_path(input_path, output_dir):
+    if not input_path.exists():
+        print(f"❌ Input path does not exist: {input_path}")
+        return
+    if input_path.is_file():
+        if input_path.suffix.lower() == ".zip":
+            with tempfile.TemporaryDirectory() as tmp:
+                with zipfile.ZipFile(input_path, 'r') as z:
+                    z.extractall(tmp)
+                for f in Path(tmp).rglob("*"):
+                    process_path(f, output_dir)
+        elif input_path.suffix.lower() == ".ispac":
+            extract_dtsx_from_ispac(input_path, output_dir)
+        elif input_path.suffix.lower() == ".dtsx":
+            shutil.copy(input_path, output_dir / input_path.name)
+            print(f"➤ Copied {input_path.name}")
+    elif input_path.is_dir():
+        for f in input_path.iterdir():
+            process_path(f, output_dir)
 
-    # Step 2: Walk through all folders to find .ispac files
-    for root, dirs, files in os.walk(temp_dir):
-        for file in files:
-            if file.lower().endswith('.ispac'):
-                ispac_path = os.path.join(root, file)
-                print(f"📦 Found .ispac: {ispac_path}")
-
-                # Step 3: Open the .ispac as a zip file
-                try:
-                    with zipfile.ZipFile(ispac_path, 'r') as ispac_zip:
-                        for name in ispac_zip.namelist():
-                            if name.lower().endswith('.dtsx'):
-                                # Extract and save with unique filename
-                                base_name = os.path.splitext(file)[0]
-                                dtsx_name = os.path.basename(name)
-                                dest_file = f"{base_name}_{dtsx_name}"
-
-                                # Ensure uniqueness
-                                counter = 1
-                                final_path = os.path.join(output_dir, dest_file)
-                                while os.path.exists(final_path):
-                                    dest_file = f"{base_name}_{counter}_{dtsx_name}"
-                                    final_path = os.path.join(output_dir, dest_file)
-                                    counter += 1
-
-                                with ispac_zip.open(name) as dtsx_file, open(final_path, 'wb') as out_file:
-                                    shutil.copyfileobj(dtsx_file, out_file)
-
-                                print(f"    ➤ Extracted: {dest_file}")
-
-                except zipfile.BadZipFile:
-                    print(f"❌ Skipping invalid .ispac (not a zip): {ispac_path}")
-
-print(f"\n🎉 Done! All .dtsx files are in: {output_dir}")
+def run():
+    print(f"\n🔍 Processing user input: {USER_INPUT}")
+    process_path(USER_INPUT, LAKEBRIDGE_INPUT)
+    print(f"\n✅ All DTSX files copied to {LAKEBRIDGE_INPUT}")
