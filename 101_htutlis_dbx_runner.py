@@ -5,6 +5,7 @@ import sys
 import logging
 import yaml
 import os
+import os  #  Added
 from pathlib import Path
 from datetime import datetime
 import sqlparse
@@ -215,12 +216,17 @@ def main():
 
     source_path = source_root / dialect
     target_path = target_root / dialect
+    print(f"\n Using source folder: {source_path}")
+    print(f" Using target folder: {target_path}")
 
     profile = config.get("profile")
     debug = config.get("debug", False)
     run_validation = config.get("run_validation", True)
     run_analyzer = config.get("run_analyzer", True)
     run_transpiler = config.get("run_transpiler", True)
+    if not run_analyzer and not run_transpiler:
+        print("\n Nothing to run. Both run_analyzer and run_transpiler are False in config.")
+        sys.exit(0)
 
     ts_folder = datetime.now().strftime("%Y%m%d")
     metadata_folder = target_path / "metadata" / ts_folder
