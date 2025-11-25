@@ -4,7 +4,7 @@ import subprocess
 import sys
 import logging
 import yaml
-import os  # ✅ Added
+import os  #  Added
 from pathlib import Path
 from datetime import datetime
 import sqlparse
@@ -144,7 +144,7 @@ def create_initial_structure(root_dir: Path = Path("lakebridge")):
         (output_dir / dialect).mkdir(parents=True, exist_ok=True)
     logs_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"\n✅ LakeBridge base structure created under {root_dir.resolve()}")
+    print(f"\n LakeBridge base structure created under {root_dir.resolve()}")
     print("Put your SQL scripts inside lakebridge/input/<dialect>/")
     print("Converted scripts will appear under lakebridge/output/<dialect>/")
     print("Then re-run: python runner.py\n")
@@ -190,8 +190,8 @@ def main():
     source_path = source_root / dialect_folder
     target_path = target_root / dialect_folder
 
-    print(f"\n🔍 Using source folder: {source_path}")
-    print(f"📂 Using target folder: {target_path}")
+    print(f"\n Using source folder: {source_path}")
+    print(f" Using target folder: {target_path}")
 
     profile = config.get("profile")
     debug = config.get("debug", False)
@@ -200,7 +200,7 @@ def main():
     run_analyzer = config.get("run_analyzer", True)
     run_transpiler = config.get("run_transpiler", True)
     if not run_analyzer and not run_transpiler:
-        print("\n⚠️ Nothing to run. Both run_analyzer and run_transpiler are False in config.")
+        print("\n Nothing to run. Both run_analyzer and run_transpiler are False in config.")
         sys.exit(0)
 
     ts_folder = datetime.now().strftime("%Y%m%d")
@@ -288,12 +288,12 @@ def main():
 if __name__ == "__main__":
     if "CURL_SETUP" in os.environ:
         if is_first_time_setup():
-            print("\n🚀 First-time setup detected (CURL mode). Creating LakeBridge folder structure...")
+            print("\n First-time setup detected (CURL mode). Creating LakeBridge folder structure...")
             create_initial_structure()
-            print("✅ Setup completed. Exiting now.")
+            print(" Setup completed. Exiting now.")
             sys.exit(0)
         else:
-            print("✅ LakeBridge folder structure already exists. Skipping setup and exiting.")
+            print(" LakeBridge folder structure already exists. Skipping setup and exiting.")
             sys.exit(0)
     else:
         main()
